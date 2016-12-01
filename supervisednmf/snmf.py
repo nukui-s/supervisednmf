@@ -1,3 +1,4 @@
+import logging
 import tensorflow as tf
 import numpy
 import scipy.sparse as ssp
@@ -53,6 +54,30 @@ class LSNMF(object):
         """
         batch_size = min(self.N, self.batch_size)
         return numpy.random.choice(self.N, batch_size, replace=False)
+
+    def fit(self, A, O, nb_epoch=10):
+        """
+        run training
+
+        :param A: adjacency matrix, dense or sparse matrix
+        :param O: constraint matrix, dense or sparse matrix
+        :return: list of training loss
+        """
+        self.setup(A, O)
+
+        loss_list = []
+        global_loss_list = []
+
+        for i in range(nb_epoch):
+            indices = self.sample_indices()
+            loss = self.partial_fit(indices)
+            loss_list.append(loss)
+            global_loss = self.global_loss()
+            global_loss_list.append(global_loss)
+
+            logging.info("Loss at {}th-epoch: {}".format(i + 1, global_loss))
+
+        return global_loss_list
 
     def partial_fit(self, indices):
         """
@@ -116,9 +141,19 @@ class LSNMF(object):
     def H(self):
         return self.sess.run(self._H)
 
+    def global_loss(self):
+        """
+        get global loss
+        """
+        indices = numpy.arange(self.N)
+        return self.sess.run(self.loss, {self.targets: indices})
+
 
 if __name__ == "__main__":
-    model = LSNMF(4)
+
+    logging.basicConfig(level=logging.INFO)
+
+    model = LSNMF(4, learning_rate=0.1, batch_size=3)
 
     A = ssp.lil_matrix((10, 10))
     O = ssp.lil_matrix((10, 10))
@@ -127,10 +162,7 @@ if __name__ == "__main__":
     O[[0, 1, 2], [1, 0, 3]] = 1.0
 
 
-    model.setup(A, O)
+    model.fit(A, O, nb_epoch=30)
     H = model.H
 
-    model.partial_fit([1, 2, 5])
     print(H)
-
-    print(model.sample_indices())
