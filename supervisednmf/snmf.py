@@ -12,7 +12,7 @@ class LSNMF(object):
     Label-based Semi-supervised NMF
     """
 
-    def __init__(self, K, lambda_c=1.0, optimizer="adam", learning_rate=1e-2,
+    def __init__(self, K, batch_size=128, lambda_c=1.0, optimizer="adam", learning_rate=1e-2,
                  threads=8, seed=42):
         """
         :param N: the number of nodes
@@ -28,6 +28,7 @@ class LSNMF(object):
         self.learning_rate = learning_rate
         self.threads = threads
         self.seed = seed
+        self.batch_size = batch_size
 
     def setup(self, A, O):
         """
@@ -43,6 +44,15 @@ class LSNMF(object):
         self.N = A.shape[0]
 
         self._build()
+
+    def sample_indices(self):
+        """
+        sample node indices
+
+        :return: list of unique node indices
+        """
+        batch_size = min(self.N, self.batch_size)
+        return numpy.random.choice(self.N, batch_size, replace=False)
 
     def partial_fit(self, indices):
         """
@@ -108,7 +118,7 @@ class LSNMF(object):
 
 
 if __name__ == "__main__":
-    model = LSNMF(10, 3)
+    model = LSNMF(4)
 
     A = ssp.lil_matrix((10, 10))
     O = ssp.lil_matrix((10, 10))
@@ -122,3 +132,5 @@ if __name__ == "__main__":
 
     model.partial_fit([1, 2, 5])
     print(H)
+
+    print(model.sample_indices())
