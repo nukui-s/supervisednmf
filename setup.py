@@ -1,4 +1,4 @@
-from setuptools.distutils import setup
+from setuptools import setup
 
 setup(
     name="supervisednmf",
